@@ -94,7 +94,7 @@ int main(int argc, char** argv)
     
     string randomNumber="31337";
 	//SSL_write
-    int sent = SSL_write(ssl,(const void*) randomNumber.c_str(),sizeof(randomNumber));
+    int sent = SSL_write(ssl,(const void*) randomNumber.cstr(),sizeof(randomNumber));
     printf("SUCCESS.\n");
 	printf("    (Challenge sent: \"%s\")\n", randomNumber.c_str());
 

@@ -33,4 +33,3 @@ string buff2hex(const unsigned char* buff, const int len)
     }
     return s;
 }
-
