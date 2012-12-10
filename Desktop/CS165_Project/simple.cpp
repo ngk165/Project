@@ -3,7 +3,7 @@
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
-#include <openssl/sha.h>
+#include <openssl/pem.h>
 
 using namespace std;
 
@@ -28,16 +28,15 @@ SSL_load_error_strings();
 	binfile = BIO_new_file(infilename, "r");
 	boutfile = BIO_new_file(outfilename, "w") ;
 	hash = BIO_new(BIO_f_md());
-	BIO_set_md(hash, EVP_sha1());
 	
-	rsa_private=BIO_new_file("rsaprivatekey.pem","r");
-	rsa_public=BIO_new_file("rsapublickey.pem","r");
+	
 
 	//Chain on the input
 	BIO_push(hash, binfile);
+	BIO_set_md(hash,EVP_sha1());
 
 	//Chain on the output
-	//BIO_push(hash, boutfile);
+	BIO_push(hash, boutfile);
 
 	int actualRead, actualWritten;
 
@@ -47,26 +46,43 @@ SSL_load_error_strings();
 		actualWritten = BIO_write(boutfile, buffer, actualRead);
 	}
 
-	//Get digest
-	char mdbuf[EVP_MAX_MD_SIZE];
-	int mdlen = BIO_gets(hash, mdbuf, EVP_MAX_MD_SIZE);
-	for(int i = 0; i < mdlen; i++)
-	{
-		//Print two hexadecimal digits (8 bits or 1 character) at a time
-		printf("%02x", mdbuf[i] & 0xFF);
-	}
-	printf("\n");
+	//get digest
+	char tempbuf[EVP_MAX_MD_SIZE];	
+	int templen = BIO_gets(hash,tempbuf,EVP_MAX_MD_SIZE);
+
+	//output to terminal
+	cout << "Orginal Hash: "; //output to terminal
+	for(int i = 0; i < templen; i++) 
+		printf("%02x", tempbuf[i] & 0xFF); //output
+	cout << endl;
+
+	//Encrypt the hash using private key
+	char buffer_priv[EVP_MAX_MD_SIZE];
+	BIO* rsafile = BIO_new_file("rsaprivatekey.pem","r");
+	RSA* pkey = PEM_read_bio_RSAPrivateKey(rsafile,NULL,NULL,NULL); 
+	int privlen = RSA_private_encrypt(EVP_MAX_MD_SIZE,(unsigned char*)tempbuf,
+	(unsigned char*)buffer_priv,pkey,RSA_PKCS1_PADDING);
+
+	cout << "Encrypted Hash: "; //output to terminal
+	for(int i = 0; i < templen; i++) 
+		printf("%02x", buffer_priv[i] & 0xFF); //output
+	cout << endl;
+
+	//Recover the hash usng RSA public key
+	char buffer_pub[EVP_MAX_MD_SIZE];
+	BIO *rsafile2 = BIO_new_file("rsapublickey.pem","r");
+	RSA* pkey2 = PEM_read_bio_RSA_PUBKEY(rsafile2,NULL,NULL,NULL); //read in rsa private key
+	RSA_public_decrypt(privlen,(unsigned char*)buffer_priv,
+	(unsigned char*)buffer_pub,pkey2,RSA_PKCS1_PADDING);
+
+	//output to terminal
+	cout << "Decrypted Hash: ";
+	for(int i = 0; i < templen; i++) 
+		printf("%02x", buffer_pub[i] & 0xFF); //output
+	cout << endl;
 
 	BIO_free_all(boutfile);
 	BIO_free_all(hash);
-
-char buf[256];
-int err;
-while ((err = ERR_get_error()) != 0) {
-ERR_error_string_n(err, buf, sizeof(buf));
-printf("*** %s\n", buf);
-}
-	
 	return 0;
 }
 
