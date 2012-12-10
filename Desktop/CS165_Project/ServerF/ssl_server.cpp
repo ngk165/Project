@@ -165,7 +165,7 @@ int main(int argc, char** argv)
 	//BIO_flush
 	//SSL_write
 	
-	//int flush = BIO_flush();
+	BIO_flush(server);
 	int swrite = SSL_write(ssl,signature,siglen);
 
     printf("DONE.\n");

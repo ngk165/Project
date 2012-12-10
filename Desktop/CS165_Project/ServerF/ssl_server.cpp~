@@ -166,7 +166,7 @@ int main(int argc, char** argv)
 	//SSL_write
 	
 	//int flush = BIO_flush();
-	int swrite = SSL_write(ssl,signature.c_str(),siglen);
+	int swrite = SSL_write(ssl,signature,siglen);
 
     printf("DONE.\n");
     
