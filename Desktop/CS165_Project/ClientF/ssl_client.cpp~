@@ -119,21 +119,23 @@ int main(int argc, char** argv)
 	//PEM_read_bio_RSA_PUBKEY
 	//RSA_public_decrypt
 	//BIO_free
-	BIO* mem = BIO_new(BIO_s_mem());//BIO_new(BIO_s_mem());
-	if(BIO_write(mem, randomNumber.c_str(), randomNumber.size())<=0)//BIO_write
-	printf("ERROR.\n");
-	BIO* hash = BIO_new(BIO_f_md()); //BIO_new(BIO_f_md());
-	BIO_set_md(hash, EVP_sha1());//BIO_set_md;
-	BIO_push(hash, mem);//BIO_push;
-	char mdbuf[EVP_MAX_MD_SIZE];
-	int mdlen = BIO_read(hash, mdbuf, EVP_MAX_MD_SIZE);//BIO_gets;
 
+	BIO* mem = BIO_new(BIO_s_mem());
+	if(BIO_write(mem, randomNumber.c_str(), randomNumber.size())<=0)
+	printf("ERROR.\n");
+	BIO* hash = BIO_new(BIO_f_md()); 
+	BIO_set_md(hash, EVP_sha1());
+	BIO_push(hash, mem);
+
+	char buf[EVP_MAX_MD_SIZE];
+	int len = BIO_read(hash, buf, EVP_MAX_MD_SIZE);
 	BIO* rsapublic = BIO_new_file("rsapublickey.pem", "r");
 	RSA* pub = PEM_read_bio_RSA_PUBKEY(rsapublic, NULL, 0, NULL);
+
 	unsigned char* decrypt = (unsigned char*) malloc(RSA_size(pub));
 	memset(decrypt, 0, RSA_size(pub));
 	RSA_public_decrypt(128, (unsigned char*)buff, decrypt, pub, RSA_PKCS1_PADDING);
-	string generated_key=buff2hex((unsigned char *)mdbuf,randomNumber.size());
+	string generated_key=buff2hex((unsigned char *)buf,randomNumber.size());
 	string decrypted_key=buff2hex(decrypt,randomNumber.size());
     
 	printf("AUTHENTICATED\n");
@@ -145,9 +147,15 @@ int main(int argc, char** argv)
 	printf("4.  Sending file request to server...");
 
 	PAUSE(2);
-	//BIO_flush
-    //BIO_puts
-	//SSL_write
+	BIO_flush(mem)
+        BIO_flush(hash)
+	BIO_flush(pub)
+	
+	BIO *request = BIO_new(BIO_s_mem());
+	char requestbuff[BUFFER_SIZE];
+	int templen = BIO_puts(requestfile,(const char*)filename);
+	int requestlen = BIO_read(request,requestbuff,templen);
+    	SSL_write(ssl,(const void*) requestbuff,requestlen);
 
     printf("SENT.\n");
 	printf("    (File requested: \"%s\")\n", filename);

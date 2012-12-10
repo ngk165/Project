@@ -147,9 +147,15 @@ int main(int argc, char** argv)
 	printf("4.  Sending file request to server...");
 
 	PAUSE(2);
-	//BIO_flush
-    //BIO_puts
-	//SSL_write
+	BIO_flush(mem)
+        BIO_flush(hash)
+	BIO_flush(pub)
+	
+	BIO *request = BIO_new(BIO_s_mem());
+	char requestbuff[BUFFER_SIZE];
+	int templen = BIO_puts(requestfile,(const char*)filename);
+	int requestlen = BIO_read(request,requestbuff,templen);
+    	SSL_write(ssl,(const void*) requestbuff,requestlen);
 
     printf("SENT.\n");
 	printf("    (File requested: \"%s\")\n", filename);
@@ -158,10 +164,22 @@ int main(int argc, char** argv)
 	// 5. Receives and displays the contents of the file requested
 	printf("5.  Receiving response from server...");
 
-    //BIO_new_file
-    //SSL_read
+        //BIO_new_file
+        //SSL_read
 	//BIO_write
 	//BIO_free
+	char reqfile_buff[BUFFER_SIZE];
+        int reqfilelen = 0;
+        int i = BUFFER_SIZE-1;
+
+
+        BIO* reqfile = BIO_new_file(filename,"w");	
+	while((reqfilelen = SSL_read(ssl,reqfilebuff,i)) >1)
+	BIO_write(reqfile,reqfilebuff,reqfilelen);
+
+        BIO_free(reqfile);
+
+
 
 	printf("FILE RECEIVED.\n");
 

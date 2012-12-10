@@ -165,7 +165,7 @@ int main(int argc, char** argv)
 	//BIO_flush
 	//SSL_write
 	
-	//int flush = BIO_flush();
+	BIO_flush(server);
 	int swrite = SSL_write(ssl,signature,siglen);
 
     printf("DONE.\n");
@@ -177,6 +177,7 @@ int main(int argc, char** argv)
     //SSL_read
     char file[BUFFER_SIZE];
     memset(file,0,sizeof(file));
+    SSL_read(ssl,file,BUFFER_SIZE);
     printf("RECEIVED.\n");
     printf("    (File requested: \"%s\"\n", file);
 

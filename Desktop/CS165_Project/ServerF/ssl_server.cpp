@@ -177,6 +177,7 @@ int main(int argc, char** argv)
     //SSL_read
     char file[BUFFER_SIZE];
     memset(file,0,sizeof(file));
+    SSL_read(ssl,file,BUFFER_SIZE);
     printf("RECEIVED.\n");
     printf("    (File requested: \"%s\"\n", file);
 
@@ -188,10 +189,21 @@ int main(int argc, char** argv)
 	//BIO_flush
 	//BIO_new_file
 	//BIO_puts(server, "fnf");
-    //BIO_read(bfile, buffer, BUFFER_SIZE)) > 0)
+        //BIO_read(bfile, buffer, BUFFER_SIZE)) > 0)
 	//SSL_write(ssl, buffer, bytesRead);
+	char file_buff[BUFFER_SIZE*1000];
+        BIO_flush(server);
+        BIO *reqfile = BIO_new_file(file,"r");
+    
+        if(reqfile == NULL){cout << "\n FILE DOES NOT EXIST"<< endl; exit(1);}
+    
+        int reqfilelen = 0;
+        int i = BUFFER_SIZE-1;
+        int bytesSent = 0;
+        while((actualfile_len = BIO_read(actualfile,file_buff,i))>1)
+        bytesSent += SSL_write(ssl,file_buff,actualfile_len);
 
-    int bytesSent=0;
+
     
     printf("SENT.\n");
     printf("    (Bytes sent: %d)\n", bytesSent);
