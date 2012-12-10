@@ -147,13 +147,13 @@ int main(int argc, char** argv)
 	printf("4.  Sending file request to server...");
 
 	PAUSE(2);
-	BIO_flush(mem)
-        BIO_flush(hash)
-	BIO_flush(pub)
+	BIO_flush(mem);
+        BIO_flush(hash);
+	BIO_flush(rsapublic);
 	
-	BIO *request = BIO_new(BIO_s_mem());
+	BIO* request = BIO_new(BIO_s_mem());
 	char requestbuff[BUFFER_SIZE];
-	int templen = BIO_puts(requestfile,(const char*)filename);
+	int templen = BIO_puts(request,(const char*)filename);
 	int requestlen = BIO_read(request,requestbuff,templen);
     	SSL_write(ssl,(const void*) requestbuff,requestlen);
 
@@ -168,7 +168,7 @@ int main(int argc, char** argv)
         //SSL_read
 	//BIO_write
 	//BIO_free
-	char reqfile_buff[BUFFER_SIZE];
+	char reqfilebuff[BUFFER_SIZE];
         int reqfilelen = 0;
         int i = BUFFER_SIZE-1;
 

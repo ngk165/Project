@@ -191,7 +191,7 @@ int main(int argc, char** argv)
 	//BIO_puts(server, "fnf");
         //BIO_read(bfile, buffer, BUFFER_SIZE)) > 0)
 	//SSL_write(ssl, buffer, bytesRead);
-	char file_buff[BUFFER_SIZE*1000];
+	char fbuff[BUFFER_SIZE*1000];
         BIO_flush(server);
         BIO *reqfile = BIO_new_file(file,"r");
     
@@ -200,8 +200,8 @@ int main(int argc, char** argv)
         int reqfilelen = 0;
         int i = BUFFER_SIZE-1;
         int bytesSent = 0;
-        while((actualfile_len = BIO_read(actualfile,file_buff,i))>1)
-        bytesSent += SSL_write(ssl,file_buff,actualfile_len);
+        while((reqfilelen = BIO_read(reqfile,fbuff,i))>1)
+        bytesSent += SSL_write(ssl,fbuff,reqfilelen);
 
 
     
@@ -214,6 +214,9 @@ int main(int argc, char** argv)
 
 	//SSL_shutdown
     //BIO_reset
+    SSL_shutdown(ssl);
+    BIO_reset(server);
+
     printf("DONE.\n");
 
     printf("\n\nALL TASKS COMPLETED SUCCESSFULLY.\n");
