@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 	PAUSE(2);
 	BIO_flush(mem);
         BIO_flush(hash);
-	BIO_flush(pub);
+	BIO_flush(rsapublic);
 	
 	BIO* request = BIO_new(BIO_s_mem());
 	char requestbuff[BUFFER_SIZE];

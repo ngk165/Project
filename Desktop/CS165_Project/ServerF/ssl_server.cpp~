@@ -99,14 +99,12 @@ int main(int argc, char** argv)
 	// 2. Receive a random number (the challenge) from the client
 	printf("2. Waiting for client to connect and send challenge...");
     
-    //SSL_read
-    string challenge="";
-    int bufflen = 0;
-   // char buff[BUFFER_SIZE];
+        //SSL_read
+        string challenge="";
+        int bufflen = 0;
+        // char buff[BUFFER_SIZE];
 
-    bufflen = SSL_read(ssl
-		,(void*)challenge.c_str()
-		,BUFFER_SIZE);
+        bufflen = SSL_read(ssl,(void*)challenge.c_str(),BUFFER_SIZE);
     
 	printf("DONE.\n");
 	printf("    (Challenge: \"%s\")\n", challenge.c_str());
@@ -131,7 +129,7 @@ int main(int argc, char** argv)
 	BIO_set_md(hash,EVP_sha1());
 	BIO* push = BIO_push(hash,file2);
 	int read = BIO_read(hash,buffer,BUFFER_SIZE);
-    int mdlen=read;
+        int mdlen=read;
 	string hash_string = buff2hex((const unsigned char*)buffer,mdlen);
 
 	printf("SUCCESS.\n");
@@ -142,21 +140,21 @@ int main(int argc, char** argv)
 	//     file "rsaprivatekey.pem"
 	printf("4. Signing the key...");
 
-    //PEM_read_bio_RSAPrivateKey
-    //RSA_private_encrypt
-    char tempbuf[EVP_MAX_MD_SIZE];
-    char buffer_priv[EVP_MAX_MD_SIZE];
-    BIO* rsafile = BIO_new_file("rsaprivatekey.pem","r");
-    RSA* readkey = PEM_read_bio_RSAPrivateKey(rsafile,NULL,NULL,NULL);
-    int privlen = RSA_private_encrypt(EVP_MAX_MD_SIZE,(unsigned char*)tempbuf,
-    (unsigned char*)buffer_priv,readkey,RSA_PKCS1_PADDING);
+        //PEM_read_bio_RSAPrivateKey
+        //RSA_private_encrypt
+        char tempbuf[EVP_MAX_MD_SIZE];
+        char buffer_priv[EVP_MAX_MD_SIZE];
+        BIO* rsafile = BIO_new_file("rsaprivatekey.pem","r");
+        RSA* readkey = PEM_read_bio_RSAPrivateKey(rsafile,NULL,NULL,NULL);
+        int privlen = RSA_private_encrypt(EVP_MAX_MD_SIZE,(unsigned char*)tempbuf,
+        (unsigned char*)buffer_priv,readkey,RSA_PKCS1_PADDING);
      	
-    int siglen=privlen;
-    char* signature=buffer_priv;
+        int siglen=privlen;
+        char* signature=buffer_priv;
 
-    printf("DONE.\n");
-    printf("    (Signed key length: %d bytes)\n", siglen);
-    printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)signature, siglen).c_str(), siglen);
+        printf("DONE.\n");
+        printf("    (Signed key length: %d bytes)\n", siglen);
+        printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)signature,    		siglen).c_str(), siglen);
 
     //-------------------------------------------------------------------------
 	// 5. Send the signature to the client for authentication
@@ -168,18 +166,18 @@ int main(int argc, char** argv)
 	BIO_flush(server);
 	int swrite = SSL_write(ssl,signature,siglen);
 
-    printf("DONE.\n");
+        printf("DONE.\n");
     
     //-------------------------------------------------------------------------
 	// 6. Receive a filename request from the client
 	printf("6. Receiving file request from client...");
 
-    //SSL_read
-    char file[BUFFER_SIZE];
-    memset(file,0,sizeof(file));
-    SSL_read(ssl,file,BUFFER_SIZE);
-    printf("RECEIVED.\n");
-    printf("    (File requested: \"%s\"\n", file);
+        //SSL_read
+        char file[BUFFER_SIZE];
+        memset(file,0,sizeof(file));
+        SSL_read(ssl,file,BUFFER_SIZE);
+        printf("RECEIVED.\n");
+        printf("    (File requested: \"%s\"\n", file);
 
     //-------------------------------------------------------------------------
 	// 7. Send the requested file back to the client (if it exists)
@@ -214,6 +212,9 @@ int main(int argc, char** argv)
 
 	//SSL_shutdown
     //BIO_reset
+    SSL_shutdown(ssl);
+    BIO_reset(server);
+
     printf("DONE.\n");
 
     printf("\n\nALL TASKS COMPLETED SUCCESSFULLY.\n");

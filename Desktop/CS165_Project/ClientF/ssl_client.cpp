@@ -92,19 +92,19 @@ int main(int argc, char** argv)
 	// 2. Send the server a random number
 	printf("2.  Sending challenge to the server...");
     
-    string randomNumber="31337";
+        string randomNumber="31337";
 	//SSL_write
-    int sent = SSL_write(ssl,(const void*) randomNumber.c_str(),sizeof(randomNumber));
-    printf("SUCCESS.\n");
+        int sent = SSL_write(ssl,(const void*) randomNumber.c_str(),sizeof(randomNumber));
+        printf("SUCCESS.\n");
 	printf("    (Challenge sent: \"%s\")\n", randomNumber.c_str());
 
     //-------------------------------------------------------------------------
 	// 3a. Receive the signed key from the server
 	printf("3a. Receiving signed key from server...");
 
-    unsigned char buff[BUFFER_SIZE];
-    memset(buff,0,sizeof(buff));
-    SSL_read(ssl,buff,BUFFER_SIZE);
+        unsigned char buff[BUFFER_SIZE];
+        memset(buff,0,sizeof(buff));
+        SSL_read(ssl,buff,BUFFER_SIZE);
 
 	printf("RECEIVED.\n");
 	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex(buff, 128).c_str(), 128);
@@ -157,7 +157,7 @@ int main(int argc, char** argv)
 	int requestlen = BIO_read(request,requestbuff,templen);
     	SSL_write(ssl,(const void*) requestbuff,requestlen);
 
-    printf("SENT.\n");
+        printf("SENT.\n");
 	printf("    (File requested: \"%s\")\n", filename);
 
     //-------------------------------------------------------------------------
