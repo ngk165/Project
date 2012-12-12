@@ -15,7 +15,7 @@ using namespace std;
 #include <openssl/pem.h>	// For reading .pem files for RSA keys
 #include <openssl/err.h>	// ERR_get_error()
 #include <openssl/dh.h>		// Diffie-Helman algorithms & libraries
-
+#include <openssl/rand.h>
 #include "utils.h"
 
 //----------------------------------------------------------------------------
@@ -91,23 +91,43 @@ int main(int argc, char** argv)
     //-------------------------------------------------------------------------
 	// 2. Send the server a random number
 	printf("2.  Sending challenge to the server...");
-    
-    string randomNumber="31337";
+    	
+        //string randomNumber="31337";
+	unsigned char random[40];
+	char send[128];
+	RAND_bytes(random,40);
+
+	BIO * news= BIO_new(BIO_s_mem());
+	BIO * newf = BIO_new(BIO_f_md());
+	BIO_set_md(newf, EVP_sha1());
+	BIO_push(newf,news);
+	BIO_write(news,random,40);
+
+	char* hashrandom = new char[40];
+	BIO_read(newf, hashrandom, 40);	
+
+	BIO *challenge = BIO_new_file("rsapublickey.pem","r");
+        RSA *pkey= PEM_read_bio_RSA_PUBKEY(challenge,NULL,NULL,NULL);
+	int encryptchallenge = RSA_public_encrypt(40,(unsigned char*)random,	
+	(unsigned char*)send,pkey,RSA_PKCS1_PADDING);
 	//SSL_write
-    int sent = SSL_write(ssl,(const void*) randomNumber.c_str(),sizeof(randomNumber));
-    printf("SUCCESS.\n");
-	printf("    (Challenge sent: \"%s\")\n", randomNumber.c_str());
+        int sent = SSL_write(ssl,send,128);
+        printf("SUCCESS.\n");
+	printf("    (Challenge sent: \"%s\")\n", buff2hex((const unsigned char*)random, 40).c_str (), 40);
+
+
 
     //-------------------------------------------------------------------------
 	// 3a. Receive the signed key from the server
 	printf("3a. Receiving signed key from server...");
-
-    unsigned char buff[BUFFER_SIZE];
-    memset(buff,0,sizeof(buff));
-    SSL_read(ssl,buff,BUFFER_SIZE);
+	char* buff = "FIXME";
+        char buff1[BUFFER_SIZE];
+	int len = SSL_read(ssl,buff1,BUFFER_SIZE);
+	buff = buff1;
 
 	printf("RECEIVED.\n");
-	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex(buff, 128).c_str(), 128);
+	printf("    (Signature: \"%s\" (%d bytes))\n", 
+	buff2hex((const unsigned char*)buff, len).c_str(), len);
 
     //-------------------------------------------------------------------------
 	// 3b. Authenticate the signed key
@@ -120,36 +140,31 @@ int main(int argc, char** argv)
 	//RSA_public_decrypt
 	//BIO_free
 
-	BIO* mem = BIO_new(BIO_s_mem());
-	if(BIO_write(mem, randomNumber.c_str(), randomNumber.size())<=0)
-	printf("ERROR.\n");
-	BIO* hash = BIO_new(BIO_f_md()); 
-	BIO_set_md(hash, EVP_sha1());
-	BIO_push(hash, mem);
+	
+	BIO * enc = BIO_new(BIO_s_mem());
+	char bout[128];
+	BIO *pubkey= BIO_new_file("rsapublickey.pem","r");
+	RSA *deckey=PEM_read_bio_RSA_PUBKEY(pubkey, NULL, NULL, NULL );
 
-	char buf[EVP_MAX_MD_SIZE];
-	int len = BIO_read(hash, buf, EVP_MAX_MD_SIZE);
-	BIO* rsapublic = BIO_new_file("rsapublickey.pem", "r");
-	RSA* pub = PEM_read_bio_RSA_PUBKEY(rsapublic, NULL, 0, NULL);
+	int decryptchallenge = RSA_public_decrypt(128,(unsigned char *) buff1, 
+	(unsigned char*)bout,deckey,RSA_PKCS1_PADDING);
 
-	unsigned char* decrypt = (unsigned char*) malloc(RSA_size(pub));
-	memset(decrypt, 0, RSA_size(pub));
-	RSA_public_decrypt(128, (unsigned char*)buff, decrypt, pub, RSA_PKCS1_PADDING);
-	string generated_key=buff2hex((unsigned char *)buf,randomNumber.size());
-	string decrypted_key=buff2hex(decrypt,randomNumber.size());
+	string generated_key=buff1;
+	string decrypted_key=bout;
+
     
 	printf("AUTHENTICATED\n");
-	printf("    (Generated key: %s)\n", generated_key.c_str());
-	printf("    (Decrypted key: %s)\n", decrypted_key.c_str());
+	printf("    (Generated key: %s)\n", buff2hex((const unsigned char*) hashrandom, 	128).c_str(), 128);
+    
+	printf("    (Decrypted key: %s)\n", buff2hex((const unsigned char*)bout, 128).c_str(), 128);
 
     //-------------------------------------------------------------------------
 	// 4. Send the server a file request
 	printf("4.  Sending file request to server...");
 
 	PAUSE(2);
-	BIO_flush(mem);
-        BIO_flush(hash);
-	BIO_flush(rsapublic);
+	BIO_flush(client);
+     
 	
 	BIO* request = BIO_new(BIO_s_mem());
 	char requestbuff[BUFFER_SIZE];
@@ -157,7 +172,7 @@ int main(int argc, char** argv)
 	int requestlen = BIO_read(request,requestbuff,templen);
     	SSL_write(ssl,(const void*) requestbuff,requestlen);
 
-    printf("SENT.\n");
+        printf("SENT.\n");
 	printf("    (File requested: \"%s\")\n", filename);
 
     //-------------------------------------------------------------------------
@@ -169,18 +184,19 @@ int main(int argc, char** argv)
 	//BIO_write
 	//BIO_free
 	char reqfilebuff[BUFFER_SIZE];
+	char reqfilebuff2[BUFFER_SIZE];
         int reqfilelen = 0;
         int i = BUFFER_SIZE-1;
 
-
+	BIO * key = BIO_new_file("rsapublickey.pem","r");
+	RSA *prkey = PEM_read_bio_RSA_PUBKEY(key,NULL,NULL,NULL);
         BIO* reqfile = BIO_new_file(filename,"w");	
-	while((reqfilelen = SSL_read(ssl,reqfilebuff,i)) >1)
-	BIO_write(reqfile,reqfilebuff,reqfilelen);
-
-        BIO_free(reqfile);
-
-
-
+	while((reqfilelen = SSL_read(ssl,reqfilebuff,i)) >1){
+		int keylen= RSA_public_decrypt(reqfilelen,(unsigned char*)reqfilebuff,prkey,RSA_PKCS1_PADDING);
+		BIO_write(reqfile,reqfilebuff2,keylen);
+        	
+	}
+	BIO_free(reqfile);
 	printf("FILE RECEIVED.\n");
 
     //-------------------------------------------------------------------------
